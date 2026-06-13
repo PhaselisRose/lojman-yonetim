@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lojman Yönetim Sistemi</title>
+
+    <style>
+
+        body{
+            margin:0;
+            font-family:Arial;
+            background:#f4f6f8;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            height:100vh;
+        }
+
+        .box{
+            background:white;
+            padding:40px;
+            border-radius:16px;
+            box-shadow:0 10px 30px rgba(0,0,0,0.1);
+            text-align:center;
+            width:320px;
+        }
+
+        h1{
+            font-size:20px;
+            margin-bottom:10px;
+        }
+
+        p{
+            color:gray;
+            font-size:13px;
+            margin-bottom:25px;
+        }
+
+        a{
+            display:inline-block;
+            width:100%;
+            padding:12px;
+            background:#4caf50;
+            color:white;
+            text-decoration:none;
+            border-radius:10px;
+            font-weight:bold;
+            transition:0.2s;
+        }
+
+        a:hover{
+            background:#45a049;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="box">
+
+        <h1>🏨 LOJMAN YÖNETİM</h1>
+
+        <p>Sistem aktif ve çalışıyor</p>
+
+        <a href="login.php">Giriş Yap</a>
+
+    </div>
+
+</body>
+
+</html>
