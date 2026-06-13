@@ -1,0 +1,278 @@
+<?php
+
+include "auth.php";
+checkRole(["admin","ik","lojman"]);
+
+include "config/database.php";
+
+// boş personeller
+$employees = $conn->query("
+SELECT * FROM employees
+WHERE id NOT IN (
+SELECT employee_id FROM room_assignments
+)
+");
+
+// odalar
+$rooms = $conn->query("SELECT * FROM rooms");
+
+?>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+
+<style>
+
+body{
+font-family:Arial;
+background:#f4f4f4;
+margin:0;
+padding:15px;
+}
+
+/* NAVBAR */
+.navbar{
+display:flex;
+flex-wrap:wrap;
+gap:8px;
+background:white;
+padding:10px;
+border-radius:12px;
+margin-bottom:15px;
+box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+
+.navbar a{
+text-decoration:none;
+color:black;
+font-size:13px;
+padding:6px 10px;
+border-radius:8px;
+background:#f5f5f5;
+}
+
+.navbar a.active{
+background:#4caf50;
+color:white;
+}
+
+/* LAYOUT */
+.container{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:15px;
+}
+
+@media(max-width:768px){
+.container{
+grid-template-columns:1fr;
+}
+}
+
+/* BOX */
+.box{
+background:white;
+padding:15px;
+border-radius:12px;
+box-shadow:0 2px 8px rgba(0,0,0,0.08);
+min-height:300px;
+}
+
+/* ARAMA KUTUSU STİLİ */
+.search-box {
+width: 100%;
+padding: 10px;
+margin-bottom: 15px;
+border: 1px solid #ddd;
+border-radius: 8px;
+font-size: 14px;
+box-sizing: border-box;
+outline: none;
+}
+
+.search-box:focus {
+border-color: #4caf50;
+box-shadow: 0 0 5px rgba(76, 175, 80, 0.2);
+}
+
+/* CARD */
+.card{
+background:#f9f9f9;
+padding:10px;
+margin:8px 0;
+border-radius:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+cursor:grab;
+}
+
+.card:active{
+cursor:grabbing;
+}
+
+/* ROOM CARD DROP */
+.room{
+background:white;
+padding:10px;
+margin:8px 0;
+border-radius:10px;
+border:2px dashed #ccc;
+}
+
+.room.hover{
+border-color:#4caf50;
+background:#f0fff0;
+}
+
+/* BUTTON */
+button{
+padding:6px 10px;
+border:none;
+background:#4caf50;
+color:white;
+border-radius:8px;
+cursor:pointer;
+}
+
+button:hover{
+background:#45a049;
+}
+
+</style>
+
+<!-- NAVBAR -->
+<div class="navbar">
+
+<a href="panel.php">🏠 Anasayfa</a>
+<a href="dashboard.php">📊 Dashboard</a>
+<a href="personeller.php">👥 Personeller</a>
+<a href="odalar.php">🏨 Odalar</a>
+<a href="excel.php">📂 Excel</a>
+<a href="yerlestirme.php" class="active">📍 Yerleştir</a>
+
+</div>
+
+<h2>📍 YERLEŞTİRME (Drag & Drop)</h2>
+
+<div class="container">
+
+<!-- PERSONEL -->
+<div class="box">
+<h3>👤 Boş Personeller</h3>
+<!-- Personel Arama Kutusu -->
+<input type="text" id="searchEmployee" class="search-box" placeholder="Personel adı ara...">
+
+<div id="employeeList">
+<?php while($e = $employees->fetch_assoc()){ ?>
+
+<div class="card" draggable="true" data-id="<?= $e['id'] ?>">
+<strong><?= $e["name"] ?></strong>
+</div>
+
+<?php } ?>
+</div>
+
+</div>
+
+<!-- ODALAR -->
+<div class="box">
+<h3>🏠 Odalar</h3>
+<!-- Oda Arama Kutusu -->
+<input type="text" id="searchRoom" class="search-box" placeholder="Oda no veya kat ara...">
+
+<div id="roomList">
+<?php while($r = $rooms->fetch_assoc()){ ?>
+
+<div class="room" data-room="<?= $r['id'] ?>">
+
+<strong>ODA <?= $r["room_no"] ?></strong><br>
+<small>Kapasite: <?= $r["capacity"] ?></small>
+
+</div>
+
+<?php } ?>
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let draggedId = null;
+
+// person drag
+document.querySelectorAll(".card").forEach(el=>{
+el.addEventListener("dragstart",function(){
+draggedId = this.getAttribute("data-id");
+});
+});
+
+// room drop
+document.querySelectorAll(".room").forEach(room=>{
+
+room.addEventListener("dragover",function(e){
+e.preventDefault();
+this.classList.add("hover");
+});
+
+room.addEventListener("dragleave",function(){
+this.classList.remove("hover");
+});
+
+room.addEventListener("drop",function(){
+
+this.classList.remove("hover");
+
+let roomId = this.getAttribute("data-room");
+
+fetch("move.php",{
+method:"POST",
+headers:{"Content-Type":"application/x-www-form-urlencoded"},
+body:"employee_id="+draggedId+"&room_id="+roomId
+})
+.then(r=>r.text())
+.then(res=>{
+alert("Personel odaya yerleştirildi");
+location.reload();
+});
+
+});
+
+});
+
+// --- GERÇEK ZAMANLI ARAMA FONKSİYONLARI ---
+
+// Personel Arama
+document.getElementById('searchEmployee').addEventListener('input', function() {
+    let filter = this.value.toLowerCase();
+    let cards = document.querySelectorAll('#employeeList .card');
+    
+    cards.forEach(card => {
+        let name = card.querySelector('strong').textContent.toLowerCase();
+        // Türkçe karakter uyumu için küçük bir kolaylık (isteğe bağlı geliştirilebilir)
+        if (name.includes(filter)) {
+            card.style.display = "";
+        } else {
+            card.style.display = "none";
+        }
+    });
+});
+
+// Oda Arama
+document.getElementById('searchRoom').addEventListener('input', function() {
+    let filter = this.value.toLowerCase();
+    let rooms = document.querySelectorAll('#roomList .room');
+    
+    rooms.forEach(room => {
+        let roomText = room.textContent.toLowerCase();
+        if (roomText.includes(filter)) {
+            room.style.display = "";
+        } else {
+            room.style.display = "none";
+        }
+    });
+});
+
+</script>
